@@ -55,6 +55,12 @@
             gap: 1rem;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         h1 {
             font-size: 1.75rem;
             font-weight: 300;
@@ -224,6 +230,10 @@
 
         .btn-secondary:hover {
             background-color: var(--border);
+        }
+
+        .btn-export {
+            white-space: nowrap;
         }
 
         .btn-danger {
@@ -415,6 +425,15 @@
         }
 
         @media (max-width: 640px) {
+            .header-inner {
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
             .menu-toggle {
                 display: block;
             }
@@ -444,7 +463,10 @@
         <div class="container">
         <div class="header-inner">
             <h1>Privatekonomi</h1>
-            <button class="menu-toggle" id="menuToggle">☰</button>
+            <div class="header-actions">
+                <button class="btn-secondary btn-export" id="exportReportBtn">Exportera rapport</button>
+                <button class="menu-toggle" id="menuToggle">☰</button>
+            </div>
         </div>
         <nav id="mainNav">
             <button class="nav-btn active" data-section="dashboard">Översikt</button>
@@ -676,6 +698,10 @@
                     document.getElementById('mainNav').classList.toggle('active')
                 })
 
+                document.getElementById('exportReportBtn').addEventListener('click', () => {
+                    this.exportReport()
+                })
+
                 // Forms
                 document.getElementById('assetForm').addEventListener('submit', (e) => {
                     e.preventDefault()
@@ -835,6 +861,409 @@
                 }
 
                 return labels[category] || category
+            }
+
+            formatDate(date = new Date()) {
+                return new Intl.DateTimeFormat('sv-SE', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }).format(date)
+            }
+
+            getGroupedAssets() {
+                return this.assets.reduce((groups, asset) => {
+                    if (!groups[asset.category]) {
+                        groups[asset.category] = []
+                    }
+                    groups[asset.category].push(asset)
+                    return groups
+                }, {})
+            }
+
+            getGroupedLiabilities() {
+                return this.liabilities.reduce((groups, liability) => {
+                    if (!groups[liability.category]) {
+                        groups[liability.category] = []
+                    }
+                    groups[liability.category].push(liability)
+                    return groups
+                }, {})
+            }
+
+            createPrintTable(headers, rows, totalLabel, totalValue) {
+                return `
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                ${headers.map(header => `<th>${header}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.join('')}
+                            <tr class="report-total-row">
+                                <td>${totalLabel}</td>
+                                <td>${totalValue}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `
+            }
+
+            createEmptyReportState(message) {
+                return `<p class="report-empty">${message}</p>`
+            }
+
+            buildAssetsReportHtml() {
+                if (this.assets.length === 0) {
+                    return this.createEmptyReportState('Inga tillgångar registrerade.')
+                }
+
+                return Object.entries(this.getGroupedAssets()).map(([category, items]) => {
+                    const categoryTotal = items.reduce((sum, item) => sum + item.value, 0)
+                    const rows = items.map(asset => `
+                        <tr>
+                            <td>${asset.name}</td>
+                            <td>${this.formatCurrency(asset.value)}</td>
+                        </tr>
+                    `)
+
+                    return `
+                        <div class="report-group">
+                            <h3>${this.getAssetCategoryLabel(category)}</h3>
+                            ${this.createPrintTable(['Namn', 'Värde'], rows, 'Summa', this.formatCurrency(categoryTotal))}
+                        </div>
+                    `
+                }).join('')
+            }
+
+            buildLiabilitiesReportHtml() {
+                if (this.liabilities.length === 0) {
+                    return this.createEmptyReportState('Inga skulder registrerade.')
+                }
+
+                return Object.entries(this.getGroupedLiabilities()).map(([category, items]) => {
+                    const categoryTotal = items.reduce((sum, item) => sum + item.value, 0)
+                    const rows = items.map(liability => `
+                        <tr>
+                            <td>${liability.name}</td>
+                            <td>${this.formatCurrency(liability.value)}</td>
+                        </tr>
+                    `)
+
+                    return `
+                        <div class="report-group">
+                            <h3>${this.getLiabilityCategoryLabel(category)}</h3>
+                            ${this.createPrintTable(['Namn', 'Belopp'], rows, 'Summa', this.formatCurrency(categoryTotal))}
+                        </div>
+                    `
+                }).join('')
+            }
+
+            buildBudgetReportHtml() {
+                const income = this.calculateTotalIncome()
+                const expenses = this.calculateTotalExpenses()
+                const net = income - expenses
+
+                const incomeRows = this.income.map(item => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${this.formatCurrency(item.amount)}</td>
+                    </tr>
+                `)
+
+                const expenseRows = this.expenses.map(item => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${this.formatCurrency(item.amount)}</td>
+                    </tr>
+                `)
+
+                return `
+                    <div class="report-budget-grid">
+                        <div class="report-card">
+                            <h3>Budgetöversikt</h3>
+                            <div class="report-summary-row">
+                                <span>Månadsinkomst</span>
+                                <span>${this.formatCurrency(income)}</span>
+                            </div>
+                            <div class="report-summary-row">
+                                <span>Månatliga utgifter</span>
+                                <span>${this.formatCurrency(expenses)}</span>
+                            </div>
+                            <div class="report-summary-row report-summary-total">
+                                <span>Netto</span>
+                                <span>${this.formatCurrency(net)}</span>
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h3>Månadsinkomst</h3>
+                            ${incomeRows.length
+                                ? this.createPrintTable(['Namn', 'Månadsinkomst'], incomeRows, 'Månadsinkomst', this.formatCurrency(income))
+                                : this.createEmptyReportState('Ingen månadsinkomst registrerad.')}
+                        </div>
+                        <div class="report-card">
+                            <h3>Månatliga utgifter</h3>
+                            ${expenseRows.length
+                                ? this.createPrintTable(['Namn', 'Månatliga utgifter'], expenseRows, 'Månatliga utgifter', this.formatCurrency(expenses))
+                                : this.createEmptyReportState('Inga månatliga utgifter registrerade.')}
+                        </div>
+                    </div>
+                `
+            }
+
+            exportReport() {
+                const totalAssets = this.calculateTotalAssets()
+                const totalLiabilities = this.calculateTotalLiabilities()
+                const netWorth = totalAssets - totalLiabilities
+                const reportWindow = window.open('', '_blank', 'width=1000,height=900')
+
+                if (!reportWindow) {
+                    return
+                }
+
+                const reportHtml = `
+                    <!DOCTYPE html>
+                    <html lang="sv">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Rapport - Privatekonomi</title>
+                        <style>
+                            * {
+                                box-sizing: border-box;
+                            }
+
+                            body {
+                                margin: 0;
+                                padding: 32px;
+                                font-family: 'Helvetica Neue', Arial, sans-serif;
+                                background: #ffffff;
+                                color: #000000;
+                                line-height: 1.5;
+                            }
+
+                            .report-container {
+                                max-width: 1100px;
+                                margin: 0 auto;
+                            }
+
+                            .report-header {
+                                margin-bottom: 32px;
+                                border-bottom: 2px solid #000000;
+                                padding-bottom: 16px;
+                            }
+
+                            .report-title-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: flex-end;
+                                gap: 16px;
+                                flex-wrap: wrap;
+                            }
+
+                            h1, h2, h3 {
+                                margin: 0;
+                                font-weight: 600;
+                            }
+
+                            h1 {
+                                font-size: 28px;
+                            }
+
+                            h2 {
+                                font-size: 18px;
+                                margin-bottom: 16px;
+                                text-transform: uppercase;
+                                letter-spacing: 0.04em;
+                            }
+
+                            h3 {
+                                font-size: 15px;
+                                margin-bottom: 12px;
+                            }
+
+                            .report-date {
+                                font-size: 14px;
+                            }
+
+                            .report-dashboard-grid {
+                                display: grid;
+                                grid-template-columns: repeat(3, 1fr);
+                                gap: 16px;
+                                margin-bottom: 24px;
+                            }
+
+                            .report-dashboard-grid .report-card.full-width {
+                                grid-column: 1 / -1;
+                            }
+
+                            .report-section {
+                                margin-bottom: 24px;
+                            }
+
+                            .report-card {
+                                border: 1px solid #000000;
+                                padding: 16px;
+                                background: #ffffff;
+                            }
+
+                            .report-stat {
+                                font-size: 28px;
+                                margin: 12px 0 8px;
+                            }
+
+                            .report-label {
+                                font-size: 12px;
+                                text-transform: uppercase;
+                                letter-spacing: 0.04em;
+                            }
+
+                            .report-summary-row {
+                                display: flex;
+                                justify-content: space-between;
+                                gap: 16px;
+                                margin-bottom: 10px;
+                            }
+
+                            .report-summary-total {
+                                border-top: 1px solid #000000;
+                                padding-top: 10px;
+                                margin-top: 10px;
+                                font-weight: 700;
+                            }
+
+                            .report-grid {
+                                display: grid;
+                                gap: 16px;
+                            }
+
+                            .report-budget-grid {
+                                display: grid;
+                                gap: 16px;
+                            }
+
+                            .report-group + .report-group {
+                                margin-top: 20px;
+                            }
+
+                            .report-table {
+                                width: 100%;
+                                border-collapse: collapse;
+                            }
+
+                            .report-table th,
+                            .report-table td {
+                                padding: 10px 8px;
+                                border: 1px solid #000000;
+                                text-align: left;
+                            }
+
+                            .report-total-row td {
+                                font-weight: 700;
+                            }
+
+                            .report-empty {
+                                margin: 0;
+                                padding: 16px;
+                                border: 1px solid #000000;
+                            }
+
+                            @media print {
+                                body {
+                                    padding: 0;
+                                }
+                            }
+
+                            @media (max-width: 800px) {
+                                .report-dashboard-grid {
+                                    grid-template-columns: 1fr;
+                                }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="report-container">
+                            <header class="report-header">
+                                <div class="report-title-row">
+                                    <div>
+                                        <h1>Privatekonomi</h1>
+                                        <p class="report-date">Datum: ${this.formatDate()}</p>
+                                    </div>
+                                </div>
+                            </header>
+
+                            <section class="report-section">
+                                <div class="report-dashboard-grid">
+                                    <div class="report-card">
+                                        <h2>Tillgångar</h2>
+                                        <div class="report-stat">${this.formatCurrency(totalAssets)}</div>
+                                        <div class="report-label">Kontanter, sparande, investeringar och fastighet</div>
+                                    </div>
+                                    <div class="report-card">
+                                        <h2>Skulder</h2>
+                                        <div class="report-stat">${this.formatCurrency(totalLiabilities)}</div>
+                                        <div class="report-label">Bolån, billån, övriga lån och kreditkort</div>
+                                    </div>
+                                    <div class="report-card">
+                                        <h2>Nettovärde</h2>
+                                        <div class="report-stat">${this.formatCurrency(netWorth)}</div>
+                                        <div class="report-label">Tillgångar minus skulder</div>
+                                    </div>
+                                    <div class="report-card full-width">
+                                        <h2>Balansräkning</h2>
+                                        <div class="report-summary-row">
+                                            <span>Tillgångar</span>
+                                            <span>${this.formatCurrency(totalAssets)}</span>
+                                        </div>
+                                        <div class="report-summary-row">
+                                            <span>Skulder</span>
+                                            <span>${this.formatCurrency(totalLiabilities)}</span>
+                                        </div>
+                                        <div class="report-summary-row report-summary-total">
+                                            <span>Nettovärde</span>
+                                            <span>${this.formatCurrency(netWorth)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="report-section">
+                                <div class="report-card">
+                                    <h2>Full tillgångslista</h2>
+                                    <div class="report-grid">
+                                        ${this.buildAssetsReportHtml()}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="report-section">
+                                <div class="report-card">
+                                    <h2>Full skuldslista</h2>
+                                    <div class="report-grid">
+                                        ${this.buildLiabilitiesReportHtml()}
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="report-section">
+                                <div class="report-card">
+                                    <h2>Budget</h2>
+                                    ${this.buildBudgetReportHtml()}
+                                </div>
+                            </section>
+                        </div>
+                    </body>
+                    </html>
+                `
+
+                reportWindow.document.open()
+                reportWindow.document.write(reportHtml)
+                reportWindow.document.close()
+                reportWindow.onload = () => {
+                    reportWindow.focus()
+                    reportWindow.print()
+                }
             }
 
             renderAllSections() {

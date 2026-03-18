@@ -121,6 +121,19 @@
         }
 
         /* Dashboard */
+        .dashboard-summary {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-summary {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         .report-layout {
             display: grid;
             grid-template-columns: 1fr;
@@ -177,6 +190,16 @@
             border-radius: 0;
         }
 
+        .statement-table thead th {
+            background-color: #f5f8f8;
+            color: var(--secondary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-bottom: 1px solid #d8e0e3;
+        }
+
         .statement-table th,
         .statement-table td {
             padding: 0.9rem 1rem;
@@ -201,6 +224,17 @@
             font-weight: 700;
             border-top: 2px solid #c8d4d8;
             background-color: #fafbfb;
+        }
+
+        .statement-divider-row td {
+            padding-top: 1.1rem;
+            border-top: 1px solid #cfd8db;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--secondary);
+            background-color: #fbfcfc;
         }
 
         .statement-net-row td {
@@ -568,6 +602,20 @@
     <main class="container">
         <!-- Dashboard Section -->
         <section id="dashboard" class="section active">
+            <div class="dashboard-summary">
+                <div class="card">
+                    <h2>Tillgångar</h2>
+                    <div class="card-stat" id="totalAssets">0 kr</div>
+                </div>
+                <div class="card">
+                    <h2>Skulder</h2>
+                    <div class="card-stat amount negative" id="totalLiabilities">0 kr</div>
+                </div>
+                <div class="card">
+                    <h2>Nettovärde</h2>
+                    <div class="card-stat" id="netWorth">0 kr</div>
+                </div>
+            </div>
             <div class="report-layout">
                 <section class="financial-statement">
                     <h2 class="statement-title">Balansräkning</h2>
@@ -1330,6 +1378,7 @@
                 const netWorth = totalAssets - totalLiabilities
                 const income = this.calculateTotalIncome()
                 const expenses = this.calculateTotalExpenses()
+                const monthlyNet = income - expenses
                 const assetCategories = [
                     { key: 'cash', label: 'Kontanter' },
                     { key: 'savings', label: 'Sparande' },
@@ -1343,6 +1392,10 @@
                     { key: 'other-loans', label: 'Övriga lån' },
                     { key: 'credit-card', label: 'Kreditkort' }
                 ]
+
+                document.getElementById('totalAssets').textContent = this.formatCurrency(totalAssets)
+                document.getElementById('totalLiabilities').textContent = this.formatCurrency(totalLiabilities)
+                document.getElementById('netWorth').textContent = this.formatCurrency(netWorth)
 
                 const getCategoryTotal = (items, categoryKey) => {
                     return items
@@ -1365,34 +1418,30 @@
                 `).join('')
 
                 document.getElementById('balanceSheet').innerHTML = `
-                    <div class="statement-columns">
-                        <div>
-                            <h3 class="statement-subtitle">Tillgångar</h3>
-                            <table class="statement-table">
-                                <tbody>
-                                    ${assetRows}
-                                    <tr class="statement-total-row">
-                                        <td>Tillgångar</td>
-                                        <td>${this.formatCurrency(totalAssets)}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div>
-                            <h3 class="statement-subtitle">Skulder</h3>
-                            <table class="statement-table">
-                                <tbody>
-                                    ${liabilityRows}
-                                    <tr class="statement-total-row">
-                                        <td>Skulder</td>
-                                        <td class="statement-value-negative">${this.formatCurrency(totalLiabilities)}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <table class="statement-table" style="margin-top: 1.5rem;">
+                    <table class="statement-table">
+                        <thead>
+                            <tr>
+                                <th>Post</th>
+                                <th>Belopp</th>
+                            </tr>
+                        </thead>
                         <tbody>
+                            <tr class="statement-divider-row">
+                                <td colspan="2">Tillgångar</td>
+                            </tr>
+                            ${assetRows}
+                            <tr class="statement-total-row">
+                                <td>Tillgångar</td>
+                                <td>${this.formatCurrency(totalAssets)}</td>
+                            </tr>
+                            <tr class="statement-divider-row">
+                                <td colspan="2">Skulder</td>
+                            </tr>
+                            ${liabilityRows}
+                            <tr class="statement-total-row">
+                                <td>Skulder</td>
+                                <td class="statement-value-negative">${this.formatCurrency(totalLiabilities)}</td>
+                            </tr>
                             <tr class="statement-net-row">
                                 <td>Nettovärde</td>
                                 <td class="${netWorth >= 0 ? 'statement-value-positive' : 'statement-value-negative'}">${this.formatCurrency(netWorth)}</td>
@@ -1401,20 +1450,48 @@
                     </table>
                 `
 
+                const incomeRows = this.income.map(item => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="statement-value-positive">${this.formatCurrency(item.amount)}</td>
+                    </tr>
+                `).join('')
+
+                const expenseRows = this.expenses.map(item => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="statement-value-negative">${this.formatCurrency(item.amount)}</td>
+                    </tr>
+                `).join('')
+
                 document.getElementById('incomeStatement').innerHTML = `
                     <table class="statement-table">
-                        <tbody>
+                        <thead>
                             <tr>
+                                <th>Post</th>
+                                <th>Belopp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="statement-divider-row">
+                                <td colspan="2">Inkomster</td>
+                            </tr>
+                            ${incomeRows}
+                            <tr class="statement-total-row">
                                 <td>Inkomster</td>
                                 <td class="statement-value-positive">${this.formatCurrency(income)}</td>
                             </tr>
-                            <tr>
+                            <tr class="statement-divider-row">
+                                <td colspan="2">Utgifter</td>
+                            </tr>
+                            ${expenseRows}
+                            <tr class="statement-total-row">
                                 <td>Utgifter</td>
                                 <td class="statement-value-negative">${this.formatCurrency(expenses)}</td>
                             </tr>
                             <tr class="statement-net-row">
                                 <td>Netto</td>
-                                <td class="${income - expenses >= 0 ? 'statement-value-positive' : 'statement-value-negative'}">${this.formatCurrency(income - expenses)}</td>
+                                <td class="${monthlyNet >= 0 ? 'statement-value-positive' : 'statement-value-negative'}">${this.formatCurrency(monthlyNet)}</td>
                             </tr>
                         </tbody>
                     </table>

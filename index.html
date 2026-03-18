@@ -1040,6 +1040,19 @@
                 const setFill = (color) => doc.setFillColor(...color)
                 const setDraw = (color) => doc.setDrawColor(...color)
                 const setText = (color) => doc.setTextColor(...color)
+                const assetCategories = [
+                    { key: 'cash', label: 'Kontanter' },
+                    { key: 'savings', label: 'Sparande' },
+                    { key: 'investments', label: 'Investeringar' },
+                    { key: 'property', label: 'Fastighet' },
+                    { key: 'other', label: 'Övrigt' }
+                ]
+                const liabilityCategories = [
+                    { key: 'mortgage', label: 'Bolån' },
+                    { key: 'car-loan', label: 'Billån' },
+                    { key: 'other-loans', label: 'Övriga lån' },
+                    { key: 'credit-card', label: 'Kreditkort' }
+                ]
 
                 const addPage = () => {
                     doc.addPage()
@@ -1050,23 +1063,6 @@
                     if (cursorY + heightNeeded > pageHeight - margin) {
                         addPage()
                     }
-                }
-
-                const drawWrappedText = (text, x, y, options = {}) => {
-                    const {
-                        width = 100,
-                        fontSize = 10,
-                        color = colors.text,
-                        fontStyle = 'normal',
-                        align = 'left'
-                    } = options
-
-                    doc.setFont('helvetica', fontStyle)
-                    doc.setFontSize(fontSize)
-                    setText(color)
-                    const lines = doc.splitTextToSize(text, width)
-                    doc.text(lines, x, y, { align })
-                    return lines.length * (fontSize + 2)
                 }
 
                 const drawSectionHeader = (title) => {
@@ -1137,11 +1133,23 @@
                     cursorY += boxHeight + sectionGap
                 }
 
+                const drawSectionDividerRow = (label, y) => {
+                    setFill(colors.mediumGray)
+                    setDraw(colors.mediumGray)
+                    doc.rect(margin, y, contentWidth, 24, 'FD')
+                    doc.setFont('helvetica', 'bold')
+                    doc.setFontSize(9)
+                    setText(colors.secondary || colors.text)
+                    doc.text(label.toUpperCase(), margin + 10, y + 16)
+                    return y + 24
+                }
+
                 const drawTable = (title, headers, rows, options = {}) => {
                     const {
                         titleColor = colors.teal,
                         valueColor = colors.text,
-                        emptyMessage = 'Inga poster registrerade.'
+                        emptyMessage = 'Inga poster registrerade.',
+                        sectioned = false
                     } = options
 
                     ensureSpace(48)
@@ -1165,7 +1173,7 @@
                     }
 
                     const tableX = margin
-                    const col1Width = contentWidth * 0.65
+                    const col1Width = contentWidth * 0.68
                     const col2Width = contentWidth - col1Width
                     const rowHeight = 24
 
@@ -1183,6 +1191,22 @@
                     drawHeaderRow()
 
                     rows.forEach((row, index) => {
+                        if (row.type === 'section') {
+                            ensureSpace(32)
+                            if (cursorY + 24 > pageHeight - margin) {
+                                addPage()
+                                doc.setFont('helvetica', 'bold')
+                                doc.setFontSize(14)
+                                setText(titleColor)
+                                doc.text(title, margin, cursorY)
+                                cursorY += 14
+                                drawHeaderRow()
+                            }
+
+                            cursorY = drawSectionDividerRow(row.label, cursorY)
+                            return
+                        }
+
                         ensureSpace(rowHeight + 8)
                         if (cursorY + rowHeight > pageHeight - margin) {
                             addPage()
@@ -1211,15 +1235,48 @@
                     cursorY += 18
                 }
 
-                const assetRows = Object.entries(this.getGroupedAssets()).flatMap(([category, items]) => {
-                    const categoryHeader = {
-                        label: this.getAssetCategoryLabel(category),
-                        value: '',
-                        valueColor: colors.text,
+                const getCategoryTotal = (items, categoryKey) => {
+                    return items
+                        .filter(item => item.category === categoryKey)
+                        .reduce((sum, item) => sum + item.value, 0)
+                }
+
+                const balanceRows = [
+                    { type: 'section', label: 'Tillgångar' },
+                    ...assetCategories.map(category => ({
+                        label: category.label,
+                        value: this.formatCurrency(getCategoryTotal(this.assets, category.key)),
+                        valueColor: colors.teal
+                    })),
+                    {
+                        label: 'Tillgångar',
+                        value: this.formatCurrency(totalAssets),
+                        valueColor: colors.teal,
+                        isTotal: true
+                    },
+                    { type: 'section', label: 'Skulder' },
+                    ...liabilityCategories.map(category => ({
+                        label: category.label,
+                        value: this.formatCurrency(getCategoryTotal(this.liabilities, category.key)),
+                        valueColor: colors.red
+                    })),
+                    {
+                        label: 'Skulder',
+                        value: this.formatCurrency(totalLiabilities),
+                        valueColor: colors.red,
+                        isTotal: true
+                    },
+                    {
+                        label: 'Nettovärde',
+                        value: this.formatCurrency(netWorth),
+                        valueColor: netWorth >= 0 ? colors.teal : colors.red,
                         isTotal: true
                     }
+                ]
+
+                const fullAssetRows = Object.entries(this.getGroupedAssets()).flatMap(([category, items]) => {
                     const itemRows = items.map(asset => ({
-                        label: `  ${asset.name}`,
+                        label: asset.name,
                         value: this.formatCurrency(asset.value),
                         valueColor: colors.teal
                     }))
@@ -1230,18 +1287,12 @@
                         isTotal: true
                     }
 
-                    return [categoryHeader, ...itemRows, categoryTotal]
+                    return [{ type: 'section', label: this.getAssetCategoryLabel(category) }, ...itemRows, categoryTotal]
                 })
 
-                const liabilityRows = Object.entries(this.getGroupedLiabilities()).flatMap(([category, items]) => {
-                    const categoryHeader = {
-                        label: this.getLiabilityCategoryLabel(category),
-                        value: '',
-                        valueColor: colors.text,
-                        isTotal: true
-                    }
+                const fullLiabilityRows = Object.entries(this.getGroupedLiabilities()).flatMap(([category, items]) => {
                     const itemRows = items.map(liability => ({
-                        label: `  ${liability.name}`,
+                        label: liability.name,
                         value: this.formatCurrency(liability.value),
                         valueColor: colors.red
                     }))
@@ -1252,7 +1303,7 @@
                         isTotal: true
                     }
 
-                    return [categoryHeader, ...itemRows, categoryTotal]
+                    return [{ type: 'section', label: this.getLiabilityCategoryLabel(category) }, ...itemRows, categoryTotal]
                 })
 
                 const incomeRows = this.income.map(item => ({
@@ -1266,6 +1317,31 @@
                     value: this.formatCurrency(item.amount),
                     valueColor: colors.red
                 }))
+
+                const resultRows = [
+                    { type: 'section', label: 'Inkomster' },
+                    ...incomeRows,
+                    ...(incomeRows.length ? [{
+                        label: 'Inkomster',
+                        value: this.formatCurrency(totalIncome),
+                        valueColor: colors.teal,
+                        isTotal: true
+                    }] : []),
+                    { type: 'section', label: 'Utgifter' },
+                    ...expenseRows,
+                    ...(expenseRows.length ? [{
+                        label: 'Utgifter',
+                        value: this.formatCurrency(totalExpenses),
+                        valueColor: colors.red,
+                        isTotal: true
+                    }] : []),
+                    {
+                        label: 'Netto',
+                        value: this.formatCurrency(monthlyNet),
+                        valueColor: monthlyNet >= 0 ? colors.teal : colors.red,
+                        isTotal: true
+                    }
+                ]
 
                 doc.setFillColor(255, 255, 255)
                 doc.rect(0, 0, pageWidth, pageHeight, 'F')
@@ -1314,57 +1390,63 @@
                 })
                 cursorY += smallCardHeight + sectionGap
 
-                drawSummaryBox('Balansräkning', [
-                    { label: 'Tillgångar', value: this.formatCurrency(totalAssets), color: colors.teal },
-                    { label: 'Skulder', value: this.formatCurrency(totalLiabilities), color: colors.red },
-                    { label: 'Nettovärde', value: this.formatCurrency(netWorth), color: netWorth >= 0 ? colors.teal : colors.red }
-                ])
+                drawSectionHeader('Balansräkning')
+                drawTable('Balansräkning', ['Post', 'Belopp'], balanceRows, {
+                    titleColor: colors.teal,
+                    emptyMessage: 'Inga balansposter registrerade.'
+                })
 
                 drawSectionHeader('Full tillgångslista')
-                drawTable('Tillgångar', ['Namn', 'Värde'], assetRows, {
+                drawTable('Tillgångar', ['Namn', 'Värde'], fullAssetRows, {
                     titleColor: colors.teal,
                     valueColor: colors.teal,
                     emptyMessage: 'Inga tillgångar registrerade.'
                 })
 
                 drawSectionHeader('Full skuldslista')
-                drawTable('Skulder', ['Namn', 'Belopp'], liabilityRows, {
+                drawTable('Skulder', ['Namn', 'Belopp'], fullLiabilityRows, {
                     titleColor: colors.red,
                     valueColor: colors.red,
                     emptyMessage: 'Inga skulder registrerade.'
                 })
 
-                drawSectionHeader('Budget')
-                drawSummaryBox('Budgetöversikt', [
-                    { label: 'Månadsinkomst', value: this.formatCurrency(totalIncome), color: colors.teal },
-                    { label: 'Månatliga utgifter', value: this.formatCurrency(totalExpenses), color: colors.red },
-                    { label: 'Netto', value: this.formatCurrency(monthlyNet), color: monthlyNet >= 0 ? colors.teal : colors.red }
-                ])
-                drawTable('Månadsinkomst', ['Namn', 'Månadsinkomst'], [
-                    ...incomeRows,
-                    ...(incomeRows.length ? [{
-                        label: 'Månadsinkomst',
-                        value: this.formatCurrency(totalIncome),
-                        valueColor: colors.teal,
-                        isTotal: true
-                    }] : [])
-                ], {
-                    titleColor: colors.teal,
-                    valueColor: colors.teal,
-                    emptyMessage: 'Ingen månadsinkomst registrerad.'
+                ensureSpace(smallCardHeight)
+                drawCard({
+                    x: margin,
+                    y: cursorY,
+                    width: smallCardWidth,
+                    height: smallCardHeight,
+                    title: 'Inkomster',
+                    value: this.formatCurrency(totalIncome),
+                    label: 'Månadsinkomst totalt',
+                    valueColor: colors.teal
                 })
-                drawTable('Månatliga utgifter', ['Namn', 'Månatliga utgifter'], [
-                    ...expenseRows,
-                    ...(expenseRows.length ? [{
-                        label: 'Månatliga utgifter',
-                        value: this.formatCurrency(totalExpenses),
-                        valueColor: colors.red,
-                        isTotal: true
-                    }] : [])
-                ], {
-                    titleColor: colors.red,
-                    valueColor: colors.red,
-                    emptyMessage: 'Inga månatliga utgifter registrerade.'
+                drawCard({
+                    x: margin + smallCardWidth + cardGap,
+                    y: cursorY,
+                    width: smallCardWidth,
+                    height: smallCardHeight,
+                    title: 'Utgifter',
+                    value: this.formatCurrency(totalExpenses),
+                    label: 'Månatliga utgifter totalt',
+                    valueColor: colors.red
+                })
+                drawCard({
+                    x: margin + ((smallCardWidth + cardGap) * 2),
+                    y: cursorY,
+                    width: smallCardWidth,
+                    height: smallCardHeight,
+                    title: 'Netto',
+                    value: this.formatCurrency(monthlyNet),
+                    label: 'Inkomster minus utgifter',
+                    valueColor: monthlyNet >= 0 ? colors.teal : colors.red
+                })
+                cursorY += smallCardHeight + sectionGap
+
+                drawSectionHeader('Resultaträkning')
+                drawTable('Resultaträkning', ['Post', 'Belopp'], resultRows, {
+                    titleColor: colors.teal,
+                    emptyMessage: 'Inga resultatposter registrerade.'
                 })
 
                 doc.save(`Privatekonomi-rapport-${this.formatFileDate()}.pdf`)

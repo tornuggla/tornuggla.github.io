@@ -667,6 +667,7 @@
         </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script>
         // App State Management
         class FinanceApp {
@@ -871,6 +872,14 @@
                 }).format(date)
             }
 
+            formatFileDate(date = new Date()) {
+                const year = date.getFullYear()
+                const month = String(date.getMonth() + 1).padStart(2, '0')
+                const day = String(date.getDate()).padStart(2, '0')
+
+                return `${year}-${month}-${day}`
+            }
+
             getGroupedAssets() {
                 return this.assets.reduce((groups, asset) => {
                     if (!groups[asset.category]) {
@@ -891,379 +900,376 @@
                 }, {})
             }
 
-            createPrintTable(headers, rows, totalLabel, totalValue) {
-                return `
-                    <table class="report-table">
-                        <thead>
-                            <tr>
-                                ${headers.map(header => `<th>${header}</th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows.join('')}
-                            <tr class="report-total-row">
-                                <td>${totalLabel}</td>
-                                <td>${totalValue}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                `
-            }
-
-            createEmptyReportState(message) {
-                return `<p class="report-empty">${message}</p>`
-            }
-
-            buildAssetsReportHtml() {
-                if (this.assets.length === 0) {
-                    return this.createEmptyReportState('Inga tillgångar registrerade.')
-                }
-
-                return Object.entries(this.getGroupedAssets()).map(([category, items]) => {
-                    const categoryTotal = items.reduce((sum, item) => sum + item.value, 0)
-                    const rows = items.map(asset => `
-                        <tr>
-                            <td>${asset.name}</td>
-                            <td>${this.formatCurrency(asset.value)}</td>
-                        </tr>
-                    `)
-
-                    return `
-                        <div class="report-group">
-                            <h3>${this.getAssetCategoryLabel(category)}</h3>
-                            ${this.createPrintTable(['Namn', 'Värde'], rows, 'Summa', this.formatCurrency(categoryTotal))}
-                        </div>
-                    `
-                }).join('')
-            }
-
-            buildLiabilitiesReportHtml() {
-                if (this.liabilities.length === 0) {
-                    return this.createEmptyReportState('Inga skulder registrerade.')
-                }
-
-                return Object.entries(this.getGroupedLiabilities()).map(([category, items]) => {
-                    const categoryTotal = items.reduce((sum, item) => sum + item.value, 0)
-                    const rows = items.map(liability => `
-                        <tr>
-                            <td>${liability.name}</td>
-                            <td>${this.formatCurrency(liability.value)}</td>
-                        </tr>
-                    `)
-
-                    return `
-                        <div class="report-group">
-                            <h3>${this.getLiabilityCategoryLabel(category)}</h3>
-                            ${this.createPrintTable(['Namn', 'Belopp'], rows, 'Summa', this.formatCurrency(categoryTotal))}
-                        </div>
-                    `
-                }).join('')
-            }
-
-            buildBudgetReportHtml() {
-                const income = this.calculateTotalIncome()
-                const expenses = this.calculateTotalExpenses()
-                const net = income - expenses
-
-                const incomeRows = this.income.map(item => `
-                    <tr>
-                        <td>${item.name}</td>
-                        <td>${this.formatCurrency(item.amount)}</td>
-                    </tr>
-                `)
-
-                const expenseRows = this.expenses.map(item => `
-                    <tr>
-                        <td>${item.name}</td>
-                        <td>${this.formatCurrency(item.amount)}</td>
-                    </tr>
-                `)
-
-                return `
-                    <div class="report-budget-grid">
-                        <div class="report-card">
-                            <h3>Budgetöversikt</h3>
-                            <div class="report-summary-row">
-                                <span>Månadsinkomst</span>
-                                <span>${this.formatCurrency(income)}</span>
-                            </div>
-                            <div class="report-summary-row">
-                                <span>Månatliga utgifter</span>
-                                <span>${this.formatCurrency(expenses)}</span>
-                            </div>
-                            <div class="report-summary-row report-summary-total">
-                                <span>Netto</span>
-                                <span>${this.formatCurrency(net)}</span>
-                            </div>
-                        </div>
-                        <div class="report-card">
-                            <h3>Månadsinkomst</h3>
-                            ${incomeRows.length
-                                ? this.createPrintTable(['Namn', 'Månadsinkomst'], incomeRows, 'Månadsinkomst', this.formatCurrency(income))
-                                : this.createEmptyReportState('Ingen månadsinkomst registrerad.')}
-                        </div>
-                        <div class="report-card">
-                            <h3>Månatliga utgifter</h3>
-                            ${expenseRows.length
-                                ? this.createPrintTable(['Namn', 'Månatliga utgifter'], expenseRows, 'Månatliga utgifter', this.formatCurrency(expenses))
-                                : this.createEmptyReportState('Inga månatliga utgifter registrerade.')}
-                        </div>
-                    </div>
-                `
-            }
-
             exportReport() {
-                const totalAssets = this.calculateTotalAssets()
-                const totalLiabilities = this.calculateTotalLiabilities()
-                const netWorth = totalAssets - totalLiabilities
-                const reportWindow = window.open('', '_blank', 'width=1000,height=900')
-
-                if (!reportWindow) {
+                if (!window.jspdf || !window.jspdf.jsPDF) {
+                    alert('PDF-biblioteket kunde inte laddas. Försök igen om en liten stund.')
                     return
                 }
 
-                const reportHtml = `
-                    <!DOCTYPE html>
-                    <html lang="sv">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Rapport - Privatekonomi</title>
-                        <style>
-                            * {
-                                box-sizing: border-box;
-                            }
+                const { jsPDF } = window.jspdf
+                const totalAssets = this.calculateTotalAssets()
+                const totalLiabilities = this.calculateTotalLiabilities()
+                const netWorth = totalAssets - totalLiabilities
+                const totalIncome = this.calculateTotalIncome()
+                const totalExpenses = this.calculateTotalExpenses()
+                const monthlyNet = totalIncome - totalExpenses
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'pt',
+                    format: 'a4'
+                })
 
-                            body {
-                                margin: 0;
-                                padding: 32px;
-                                font-family: 'Helvetica Neue', Arial, sans-serif;
-                                background: #ffffff;
-                                color: #000000;
-                                line-height: 1.5;
-                            }
-
-                            .report-container {
-                                max-width: 1100px;
-                                margin: 0 auto;
-                            }
-
-                            .report-header {
-                                margin-bottom: 32px;
-                                border-bottom: 2px solid #000000;
-                                padding-bottom: 16px;
-                            }
-
-                            .report-title-row {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: flex-end;
-                                gap: 16px;
-                                flex-wrap: wrap;
-                            }
-
-                            h1, h2, h3 {
-                                margin: 0;
-                                font-weight: 600;
-                            }
-
-                            h1 {
-                                font-size: 28px;
-                            }
-
-                            h2 {
-                                font-size: 18px;
-                                margin-bottom: 16px;
-                                text-transform: uppercase;
-                                letter-spacing: 0.04em;
-                            }
-
-                            h3 {
-                                font-size: 15px;
-                                margin-bottom: 12px;
-                            }
-
-                            .report-date {
-                                font-size: 14px;
-                            }
-
-                            .report-dashboard-grid {
-                                display: grid;
-                                grid-template-columns: repeat(3, 1fr);
-                                gap: 16px;
-                                margin-bottom: 24px;
-                            }
-
-                            .report-dashboard-grid .report-card.full-width {
-                                grid-column: 1 / -1;
-                            }
-
-                            .report-section {
-                                margin-bottom: 24px;
-                            }
-
-                            .report-card {
-                                border: 1px solid #000000;
-                                padding: 16px;
-                                background: #ffffff;
-                            }
-
-                            .report-stat {
-                                font-size: 28px;
-                                margin: 12px 0 8px;
-                            }
-
-                            .report-label {
-                                font-size: 12px;
-                                text-transform: uppercase;
-                                letter-spacing: 0.04em;
-                            }
-
-                            .report-summary-row {
-                                display: flex;
-                                justify-content: space-between;
-                                gap: 16px;
-                                margin-bottom: 10px;
-                            }
-
-                            .report-summary-total {
-                                border-top: 1px solid #000000;
-                                padding-top: 10px;
-                                margin-top: 10px;
-                                font-weight: 700;
-                            }
-
-                            .report-grid {
-                                display: grid;
-                                gap: 16px;
-                            }
-
-                            .report-budget-grid {
-                                display: grid;
-                                gap: 16px;
-                            }
-
-                            .report-group + .report-group {
-                                margin-top: 20px;
-                            }
-
-                            .report-table {
-                                width: 100%;
-                                border-collapse: collapse;
-                            }
-
-                            .report-table th,
-                            .report-table td {
-                                padding: 10px 8px;
-                                border: 1px solid #000000;
-                                text-align: left;
-                            }
-
-                            .report-total-row td {
-                                font-weight: 700;
-                            }
-
-                            .report-empty {
-                                margin: 0;
-                                padding: 16px;
-                                border: 1px solid #000000;
-                            }
-
-                            @media print {
-                                body {
-                                    padding: 0;
-                                }
-                            }
-
-                            @media (max-width: 800px) {
-                                .report-dashboard-grid {
-                                    grid-template-columns: 1fr;
-                                }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="report-container">
-                            <header class="report-header">
-                                <div class="report-title-row">
-                                    <div>
-                                        <h1>Privatekonomi</h1>
-                                        <p class="report-date">Datum: ${this.formatDate()}</p>
-                                    </div>
-                                </div>
-                            </header>
-
-                            <section class="report-section">
-                                <div class="report-dashboard-grid">
-                                    <div class="report-card">
-                                        <h2>Tillgångar</h2>
-                                        <div class="report-stat">${this.formatCurrency(totalAssets)}</div>
-                                        <div class="report-label">Kontanter, sparande, investeringar och fastighet</div>
-                                    </div>
-                                    <div class="report-card">
-                                        <h2>Skulder</h2>
-                                        <div class="report-stat">${this.formatCurrency(totalLiabilities)}</div>
-                                        <div class="report-label">Bolån, billån, övriga lån och kreditkort</div>
-                                    </div>
-                                    <div class="report-card">
-                                        <h2>Nettovärde</h2>
-                                        <div class="report-stat">${this.formatCurrency(netWorth)}</div>
-                                        <div class="report-label">Tillgångar minus skulder</div>
-                                    </div>
-                                    <div class="report-card full-width">
-                                        <h2>Balansräkning</h2>
-                                        <div class="report-summary-row">
-                                            <span>Tillgångar</span>
-                                            <span>${this.formatCurrency(totalAssets)}</span>
-                                        </div>
-                                        <div class="report-summary-row">
-                                            <span>Skulder</span>
-                                            <span>${this.formatCurrency(totalLiabilities)}</span>
-                                        </div>
-                                        <div class="report-summary-row report-summary-total">
-                                            <span>Nettovärde</span>
-                                            <span>${this.formatCurrency(netWorth)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="report-section">
-                                <div class="report-card">
-                                    <h2>Full tillgångslista</h2>
-                                    <div class="report-grid">
-                                        ${this.buildAssetsReportHtml()}
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="report-section">
-                                <div class="report-card">
-                                    <h2>Full skuldslista</h2>
-                                    <div class="report-grid">
-                                        ${this.buildLiabilitiesReportHtml()}
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="report-section">
-                                <div class="report-card">
-                                    <h2>Budget</h2>
-                                    ${this.buildBudgetReportHtml()}
-                                </div>
-                            </section>
-                        </div>
-                    </body>
-                    </html>
-                `
-
-                reportWindow.document.open()
-                reportWindow.document.write(reportHtml)
-                reportWindow.document.close()
-                reportWindow.onload = () => {
-                    reportWindow.focus()
-                    reportWindow.print()
+                const colors = {
+                    teal: [42, 157, 143],
+                    red: [231, 76, 60],
+                    lightGray: [244, 246, 248],
+                    mediumGray: [224, 229, 233],
+                    text: [44, 62, 80],
+                    muted: [110, 120, 130],
+                    white: [255, 255, 255]
                 }
+
+                const pageWidth = doc.internal.pageSize.getWidth()
+                const pageHeight = doc.internal.pageSize.getHeight()
+                const margin = 40
+                const contentWidth = pageWidth - (margin * 2)
+                const cardGap = 12
+                const smallCardWidth = (contentWidth - (cardGap * 2)) / 3
+                const smallCardHeight = 88
+                const sectionGap = 22
+                let cursorY = margin
+
+                const setFill = (color) => doc.setFillColor(...color)
+                const setDraw = (color) => doc.setDrawColor(...color)
+                const setText = (color) => doc.setTextColor(...color)
+
+                const addPage = () => {
+                    doc.addPage()
+                    cursorY = margin
+                }
+
+                const ensureSpace = (heightNeeded) => {
+                    if (cursorY + heightNeeded > pageHeight - margin) {
+                        addPage()
+                    }
+                }
+
+                const drawWrappedText = (text, x, y, options = {}) => {
+                    const {
+                        width = 100,
+                        fontSize = 10,
+                        color = colors.text,
+                        fontStyle = 'normal',
+                        align = 'left'
+                    } = options
+
+                    doc.setFont('helvetica', fontStyle)
+                    doc.setFontSize(fontSize)
+                    setText(color)
+                    const lines = doc.splitTextToSize(text, width)
+                    doc.text(lines, x, y, { align })
+                    return lines.length * (fontSize + 2)
+                }
+
+                const drawSectionHeader = (title) => {
+                    ensureSpace(34)
+                    doc.setFont('helvetica', 'bold')
+                    doc.setFontSize(18)
+                    setText(colors.teal)
+                    doc.text(title, margin, cursorY)
+                    cursorY += 18
+                    setDraw(colors.mediumGray)
+                    doc.setLineWidth(1)
+                    doc.line(margin, cursorY + 6, pageWidth - margin, cursorY + 6)
+                    cursorY += 20
+                }
+
+                const drawCard = ({ x, y, width, height, title, value, label, valueColor = colors.text }) => {
+                    setFill(colors.lightGray)
+                    setDraw(colors.mediumGray)
+                    doc.roundedRect(x, y, width, height, 10, 10, 'FD')
+
+                    doc.setFont('helvetica', 'bold')
+                    doc.setFontSize(13)
+                    setText(colors.teal)
+                    doc.text(title, x + 14, y + 22)
+
+                    doc.setFont('helvetica', 'bold')
+                    doc.setFontSize(22)
+                    setText(valueColor)
+                    doc.text(value, x + 14, y + 50)
+
+                    doc.setFont('helvetica', 'normal')
+                    doc.setFontSize(9)
+                    setText(colors.muted)
+                    const labelLines = doc.splitTextToSize(label, width - 28)
+                    doc.text(labelLines, x + 14, y + 68)
+                }
+
+                const drawSummaryBox = (title, rows) => {
+                    const boxHeight = 34 + (rows.length * 24) + 12
+                    ensureSpace(boxHeight)
+                    setFill(colors.lightGray)
+                    setDraw(colors.mediumGray)
+                    doc.roundedRect(margin, cursorY, contentWidth, boxHeight, 10, 10, 'FD')
+
+                    doc.setFont('helvetica', 'bold')
+                    doc.setFontSize(13)
+                    setText(colors.teal)
+                    doc.text(title, margin + 14, cursorY + 22)
+
+                    let rowY = cursorY + 48
+                    rows.forEach((row, index) => {
+                        doc.setFont('helvetica', index === rows.length - 1 ? 'bold' : 'normal')
+                        doc.setFontSize(11)
+                        setText(colors.text)
+                        doc.text(row.label, margin + 14, rowY)
+
+                        setText(row.color || colors.text)
+                        doc.text(row.value, pageWidth - margin - 14, rowY, { align: 'right' })
+
+                        if (index === rows.length - 2) {
+                            setDraw(colors.mediumGray)
+                            doc.line(margin + 14, rowY + 8, pageWidth - margin - 14, rowY + 8)
+                        }
+
+                        rowY += 24
+                    })
+
+                    cursorY += boxHeight + sectionGap
+                }
+
+                const drawTable = (title, headers, rows, options = {}) => {
+                    const {
+                        titleColor = colors.teal,
+                        valueColor = colors.text,
+                        emptyMessage = 'Inga poster registrerade.'
+                    } = options
+
+                    ensureSpace(48)
+                    doc.setFont('helvetica', 'bold')
+                    doc.setFontSize(14)
+                    setText(titleColor)
+                    doc.text(title, margin, cursorY)
+                    cursorY += 14
+
+                    if (rows.length === 0) {
+                        ensureSpace(34)
+                        setFill(colors.lightGray)
+                        setDraw(colors.mediumGray)
+                        doc.rect(margin, cursorY, contentWidth, 30, 'FD')
+                        doc.setFont('helvetica', 'normal')
+                        doc.setFontSize(10)
+                        setText(colors.muted)
+                        doc.text(emptyMessage, margin + 12, cursorY + 19)
+                        cursorY += 42
+                        return
+                    }
+
+                    const tableX = margin
+                    const col1Width = contentWidth * 0.65
+                    const col2Width = contentWidth - col1Width
+                    const rowHeight = 24
+
+                    const drawHeaderRow = () => {
+                        setFill(colors.teal)
+                        doc.rect(tableX, cursorY, contentWidth, rowHeight, 'F')
+                        doc.setFont('helvetica', 'bold')
+                        doc.setFontSize(10)
+                        setText(colors.white)
+                        doc.text(headers[0], tableX + 10, cursorY + 16)
+                        doc.text(headers[1], tableX + col1Width + col2Width - 10, cursorY + 16, { align: 'right' })
+                        cursorY += rowHeight
+                    }
+
+                    drawHeaderRow()
+
+                    rows.forEach((row, index) => {
+                        ensureSpace(rowHeight + 8)
+                        if (cursorY + rowHeight > pageHeight - margin) {
+                            addPage()
+                            doc.setFont('helvetica', 'bold')
+                            doc.setFontSize(14)
+                            setText(titleColor)
+                            doc.text(title, margin, cursorY)
+                            cursorY += 14
+                            drawHeaderRow()
+                        }
+
+                        setFill(index % 2 === 0 ? colors.white : colors.lightGray)
+                        setDraw(colors.mediumGray)
+                        doc.rect(tableX, cursorY, contentWidth, rowHeight, 'FD')
+                        doc.line(tableX + col1Width, cursorY, tableX + col1Width, cursorY + rowHeight)
+
+                        doc.setFont('helvetica', row.isTotal ? 'bold' : 'normal')
+                        doc.setFontSize(10)
+                        setText(colors.text)
+                        doc.text(row.label, tableX + 10, cursorY + 16)
+                        setText(row.valueColor || valueColor)
+                        doc.text(row.value, tableX + contentWidth - 10, cursorY + 16, { align: 'right' })
+                        cursorY += rowHeight
+                    })
+
+                    cursorY += 18
+                }
+
+                const assetRows = Object.entries(this.getGroupedAssets()).flatMap(([category, items]) => {
+                    const categoryHeader = {
+                        label: this.getAssetCategoryLabel(category),
+                        value: '',
+                        valueColor: colors.text,
+                        isTotal: true
+                    }
+                    const itemRows = items.map(asset => ({
+                        label: `  ${asset.name}`,
+                        value: this.formatCurrency(asset.value),
+                        valueColor: colors.teal
+                    }))
+                    const categoryTotal = {
+                        label: 'Summa',
+                        value: this.formatCurrency(items.reduce((sum, item) => sum + item.value, 0)),
+                        valueColor: colors.teal,
+                        isTotal: true
+                    }
+
+                    return [categoryHeader, ...itemRows, categoryTotal]
+                })
+
+                const liabilityRows = Object.entries(this.getGroupedLiabilities()).flatMap(([category, items]) => {
+                    const categoryHeader = {
+                        label: this.getLiabilityCategoryLabel(category),
+                        value: '',
+                        valueColor: colors.text,
+                        isTotal: true
+                    }
+                    const itemRows = items.map(liability => ({
+                        label: `  ${liability.name}`,
+                        value: this.formatCurrency(liability.value),
+                        valueColor: colors.red
+                    }))
+                    const categoryTotal = {
+                        label: 'Summa',
+                        value: this.formatCurrency(items.reduce((sum, item) => sum + item.value, 0)),
+                        valueColor: colors.red,
+                        isTotal: true
+                    }
+
+                    return [categoryHeader, ...itemRows, categoryTotal]
+                })
+
+                const incomeRows = this.income.map(item => ({
+                    label: item.name,
+                    value: this.formatCurrency(item.amount),
+                    valueColor: colors.teal
+                }))
+
+                const expenseRows = this.expenses.map(item => ({
+                    label: item.name,
+                    value: this.formatCurrency(item.amount),
+                    valueColor: colors.red
+                }))
+
+                doc.setFillColor(255, 255, 255)
+                doc.rect(0, 0, pageWidth, pageHeight, 'F')
+
+                doc.setFont('helvetica', 'bold')
+                doc.setFontSize(24)
+                setText(colors.teal)
+                doc.text('Privatekonomi', margin, cursorY)
+
+                doc.setFont('helvetica', 'normal')
+                doc.setFontSize(11)
+                setText(colors.muted)
+                doc.text(`Datum: ${this.formatDate()}`, margin, cursorY + 18)
+                cursorY += 40
+
+                ensureSpace(smallCardHeight)
+                drawCard({
+                    x: margin,
+                    y: cursorY,
+                    width: smallCardWidth,
+                    height: smallCardHeight,
+                    title: 'Tillgångar',
+                    value: this.formatCurrency(totalAssets),
+                    label: 'Kontanter, sparande, investeringar och fastighet',
+                    valueColor: colors.teal
+                })
+                drawCard({
+                    x: margin + smallCardWidth + cardGap,
+                    y: cursorY,
+                    width: smallCardWidth,
+                    height: smallCardHeight,
+                    title: 'Skulder',
+                    value: this.formatCurrency(totalLiabilities),
+                    label: 'Bolån, billån, övriga lån och kreditkort',
+                    valueColor: colors.red
+                })
+                drawCard({
+                    x: margin + ((smallCardWidth + cardGap) * 2),
+                    y: cursorY,
+                    width: smallCardWidth,
+                    height: smallCardHeight,
+                    title: 'Nettovärde',
+                    value: this.formatCurrency(netWorth),
+                    label: 'Tillgångar minus skulder',
+                    valueColor: netWorth >= 0 ? colors.teal : colors.red
+                })
+                cursorY += smallCardHeight + sectionGap
+
+                drawSummaryBox('Balansräkning', [
+                    { label: 'Tillgångar', value: this.formatCurrency(totalAssets), color: colors.teal },
+                    { label: 'Skulder', value: this.formatCurrency(totalLiabilities), color: colors.red },
+                    { label: 'Nettovärde', value: this.formatCurrency(netWorth), color: netWorth >= 0 ? colors.teal : colors.red }
+                ])
+
+                drawSectionHeader('Full tillgångslista')
+                drawTable('Tillgångar', ['Namn', 'Värde'], assetRows, {
+                    titleColor: colors.teal,
+                    valueColor: colors.teal,
+                    emptyMessage: 'Inga tillgångar registrerade.'
+                })
+
+                drawSectionHeader('Full skuldslista')
+                drawTable('Skulder', ['Namn', 'Belopp'], liabilityRows, {
+                    titleColor: colors.red,
+                    valueColor: colors.red,
+                    emptyMessage: 'Inga skulder registrerade.'
+                })
+
+                drawSectionHeader('Budget')
+                drawSummaryBox('Budgetöversikt', [
+                    { label: 'Månadsinkomst', value: this.formatCurrency(totalIncome), color: colors.teal },
+                    { label: 'Månatliga utgifter', value: this.formatCurrency(totalExpenses), color: colors.red },
+                    { label: 'Netto', value: this.formatCurrency(monthlyNet), color: monthlyNet >= 0 ? colors.teal : colors.red }
+                ])
+                drawTable('Månadsinkomst', ['Namn', 'Månadsinkomst'], [
+                    ...incomeRows,
+                    ...(incomeRows.length ? [{
+                        label: 'Månadsinkomst',
+                        value: this.formatCurrency(totalIncome),
+                        valueColor: colors.teal,
+                        isTotal: true
+                    }] : [])
+                ], {
+                    titleColor: colors.teal,
+                    valueColor: colors.teal,
+                    emptyMessage: 'Ingen månadsinkomst registrerad.'
+                })
+                drawTable('Månatliga utgifter', ['Namn', 'Månatliga utgifter'], [
+                    ...expenseRows,
+                    ...(expenseRows.length ? [{
+                        label: 'Månatliga utgifter',
+                        value: this.formatCurrency(totalExpenses),
+                        valueColor: colors.red,
+                        isTotal: true
+                    }] : [])
+                ], {
+                    titleColor: colors.red,
+                    valueColor: colors.red,
+                    emptyMessage: 'Inga månatliga utgifter registrerade.'
+                })
+
+                doc.save(`Privatekonomi-rapport-${this.formatFileDate()}.pdf`)
             }
 
             renderAllSections() {

@@ -412,6 +412,10 @@
             margin-bottom: 2rem;
         }
 
+        .data-group:last-child {
+            margin-bottom: 0;
+        }
+
         .data-list-table {
             width: 100%;
             table-layout: fixed;
@@ -1928,39 +1932,41 @@
                 } else {
                     const incomeTotal = this.calculateTotalIncome()
                     document.getElementById('incomeList').innerHTML = `
-                        <table class="data-list-table">
-                            <colgroup>
-                                <col class="name-col">
-                                <col class="value-col">
-                                <col class="action-col">
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>Namn</th>
-                                    <th>Månadsinkomst</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${this.income.map(item => `
+                        <div class="data-group">
+                            <table class="data-list-table">
+                                <colgroup>
+                                    <col class="name-col">
+                                    <col class="value-col">
+                                    <col class="action-col">
+                                </colgroup>
+                                <thead>
                                     <tr>
-                                        <td>${item.name}</td>
-                                        <td class="amount positive">${this.formatCurrency(item.amount)}</td>
-                                        <td>
-                                            <div class="table-actions">
-                                                <button class="btn-edit" onclick="app.editIncome(${item.id})">Redigera</button>
-                                                <button class="btn-danger" onclick="app.deleteIncome(${item.id})">Ta bort</button>
-                                            </div>
-                                        </td>
+                                        <th>Namn</th>
+                                        <th>Månadsinkomst</th>
+                                        <th></th>
                                     </tr>
-                                `).join('')}
-                                <tr style="background-color: var(--lighter);">
-                                    <td style="font-weight: 600;">Månadsinkomst</td>
-                                    <td style="font-weight: 600; color: var(--success);">${this.formatCurrency(incomeTotal)}</td>
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    ${this.income.map(item => `
+                                        <tr>
+                                            <td>${item.name}</td>
+                                            <td class="amount positive">${this.formatCurrency(item.amount)}</td>
+                                            <td>
+                                                <div class="table-actions">
+                                                    <button class="btn-edit" onclick="app.editIncome(${item.id})">Redigera</button>
+                                                    <button class="btn-danger" onclick="app.deleteIncome(${item.id})">Ta bort</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                    <tr style="background-color: var(--lighter);">
+                                        <td style="font-weight: 600;">Månadsinkomst</td>
+                                        <td style="font-weight: 600; color: var(--success);">${this.formatCurrency(incomeTotal)}</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     `
                 }
             }
@@ -1971,39 +1977,41 @@
                 } else {
                     const expenseTotal = this.calculateTotalExpenses()
                     document.getElementById('expenseList').innerHTML = `
-                        <table class="data-list-table">
-                            <colgroup>
-                                <col class="name-col">
-                                <col class="value-col">
-                                <col class="action-col">
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>Namn</th>
-                                    <th>Månatliga utgifter</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${this.expenses.map(item => `
+                        <div class="data-group">
+                            <table class="data-list-table">
+                                <colgroup>
+                                    <col class="name-col">
+                                    <col class="value-col">
+                                    <col class="action-col">
+                                </colgroup>
+                                <thead>
                                     <tr>
-                                        <td>${item.name}</td>
-                                        <td class="amount negative">${this.formatCurrency(item.amount)}</td>
-                                        <td>
-                                            <div class="table-actions">
-                                                <button class="btn-edit" onclick="app.editExpense(${item.id})">Redigera</button>
-                                                <button class="btn-danger" onclick="app.deleteExpense(${item.id})">Ta bort</button>
-                                            </div>
-                                        </td>
+                                        <th>Namn</th>
+                                        <th>Månatliga utgifter</th>
+                                        <th></th>
                                     </tr>
-                                `).join('')}
-                                <tr style="background-color: var(--lighter);">
-                                    <td style="font-weight: 600;">Månatliga utgifter</td>
-                                    <td style="font-weight: 600; color: var(--danger);">${this.formatCurrency(expenseTotal)}</td>
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    ${this.expenses.map(item => `
+                                        <tr>
+                                            <td>${item.name}</td>
+                                            <td class="amount negative">${this.formatCurrency(item.amount)}</td>
+                                            <td>
+                                                <div class="table-actions">
+                                                    <button class="btn-edit" onclick="app.editExpense(${item.id})">Redigera</button>
+                                                    <button class="btn-danger" onclick="app.deleteExpense(${item.id})">Ta bort</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                    <tr style="background-color: var(--lighter);">
+                                        <td style="font-weight: 600;">Månatliga utgifter</td>
+                                        <td style="font-weight: 600; color: var(--danger);">${this.formatCurrency(expenseTotal)}</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     `
                 }
             }

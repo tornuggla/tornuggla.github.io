@@ -40,6 +40,57 @@
             padding: 0 1rem;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
+        .app-shell {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+        }
+
+        .app-shell.active {
+            display: flex;
+        }
+
+        .auth-screen {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem 5rem;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 18px 40px rgba(44, 62, 80, 0.08);
+        }
+
+        .auth-card h2 {
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: var(--secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .auth-card p {
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-error {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
         /* Header */
         header {
             background-color: white;
@@ -62,6 +113,18 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+        }
+
+        .auth-status {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+
+        .header-user {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            white-space: nowrap;
         }
 
         .header-export-mobile {
@@ -609,11 +672,14 @@
         @media (max-width: 640px) {
             .header-inner {
                 align-items: flex-start;
+                flex-wrap: wrap;
             }
 
             .header-actions {
-                width: auto;
-                margin-left: auto;
+                width: 100%;
+                margin-left: 0;
+                justify-content: flex-end;
+                flex-wrap: wrap;
             }
 
             .menu-toggle {
@@ -654,29 +720,42 @@
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-        <div class="header-inner">
-            <h1>Privatekonomi</h1>
-            <div class="header-actions">
-                <button class="btn-secondary btn-export" id="exportReportBtn">Exportera rapport</button>
-                <button class="menu-toggle" id="menuToggle">☰</button>
-            </div>
+    <section id="authScreen" class="auth-screen">
+        <div class="auth-card">
+            <h2>Logga in</h2>
+            <p>Logga in med Google för att synka din privatekonomi mellan olika enheter och webbläsare.</p>
+            <button class="btn-primary" id="googleSignInBtn">Fortsätt med Google</button>
+            <p class="auth-error hidden" id="authError"></p>
         </div>
-        <nav id="mainNav">
-            <button class="nav-btn active" data-section="dashboard">Översikt</button>
-            <button class="nav-btn" data-section="assets">Tillgångar</button>
-            <button class="nav-btn" data-section="liabilities">Skulder</button>
-            <button class="nav-btn" data-section="income">Inkomster</button>
-            <button class="nav-btn" data-section="expenses">Utgifter</button>
-        </nav>
-        <div class="header-export-mobile">
-            <button class="btn-secondary btn-export" id="exportReportBtnMobile">Exportera rapport</button>
-        </div>
-        </div>
-    </header>
+    </section>
 
-    <main class="container">
+    <div id="appShell" class="app-shell">
+        <header>
+            <div class="container">
+            <div class="header-inner">
+                <h1>Privatekonomi</h1>
+                <div class="header-actions">
+                    <span class="auth-status" id="syncStatus"></span>
+                    <span class="header-user" id="userInfo"></span>
+                    <button class="btn-secondary" id="logoutBtn">Logga ut</button>
+                    <button class="btn-secondary btn-export" id="exportReportBtn">Exportera rapport</button>
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                </div>
+            </div>
+            <nav id="mainNav">
+                <button class="nav-btn active" data-section="dashboard">Översikt</button>
+                <button class="nav-btn" data-section="assets">Tillgångar</button>
+                <button class="nav-btn" data-section="liabilities">Skulder</button>
+                <button class="nav-btn" data-section="income">Inkomster</button>
+                <button class="nav-btn" data-section="expenses">Utgifter</button>
+            </nav>
+            <div class="header-export-mobile">
+                <button class="btn-secondary btn-export" id="exportReportBtnMobile">Exportera rapport</button>
+            </div>
+            </div>
+        </header>
+
+        <main class="container">
         <!-- Dashboard Section -->
         <section id="dashboard" class="section active">
             <div class="page-shell">
@@ -857,15 +936,35 @@
                 </div>
             </div>
         </section>
-    </main>
+        </main>
+    </div>
 
     <footer>
         <p>Privatekonomi <span id="footerYear"></span></p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <script>
         document.getElementById('footerYear').textContent = new Date().getFullYear()
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBIt05aNsuyMzVzQI2ibbyawLXwkYPItCY",
+            authDomain: "privatekonomi-3a5ef.firebaseapp.com",
+            projectId: "privatekonomi-3a5ef",
+            storageBucket: "privatekonomi-3a5ef.firebasestorage.app",
+            messagingSenderId: "864948828990",
+            appId: "1:864948828990:web:008019ea8263c225b18a6f",
+            measurementId: "G-EX41967MHP"
+        }
+
+        firebase.initializeApp(firebaseConfig)
+
+        const auth = firebase.auth()
+        const db = firebase.firestore()
+        const googleProvider = new firebase.auth.GoogleAuthProvider()
 
         // App State Management
         class FinanceApp {
@@ -880,13 +979,15 @@
                     income: null,
                     expense: null
                 }
-                this.loadFromLocalStorage()
+                this.user = null
+                this.unsubscribeFromUserData = null
                 this.init()
             }
 
             init() {
                 this.setupEventListeners()
                 this.renderAllSections()
+                this.updateAuthUI(false)
             }
 
             setupEventListeners() {
@@ -911,6 +1012,26 @@
                     this.exportReport()
                 })
 
+                document.getElementById('googleSignInBtn').addEventListener('click', async () => {
+                    this.clearAuthError()
+                    try {
+                        await auth.signInWithPopup(googleProvider)
+                    } catch (error) {
+                        console.error('Google sign-in failed', error)
+                        this.showAuthError('Det gick inte att logga in med Google. Försök igen.')
+                    }
+                })
+
+                document.getElementById('logoutBtn').addEventListener('click', async () => {
+                    this.clearAuthError()
+                    try {
+                        await auth.signOut()
+                    } catch (error) {
+                        console.error('Logout failed', error)
+                        alert('Det gick inte att logga ut. Försök igen.')
+                    }
+                })
+
                 // Forms
                 document.getElementById('assetForm').addEventListener('submit', (e) => {
                     e.preventDefault()
@@ -931,6 +1052,124 @@
                     e.preventDefault()
                     this.addExpense()
                 })
+            }
+
+            getUserDataRef() {
+                if (!this.user) return null
+
+                return db.collection('users').doc(this.user.uid).collection('privatekonomi').doc('financeData')
+            }
+
+            getDataPayload() {
+                return {
+                    assets: this.assets,
+                    liabilities: this.liabilities,
+                    income: this.income,
+                    expenses: this.expenses,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }
+            }
+
+            updateAuthUI(isAuthenticated) {
+                document.getElementById('authScreen').classList.toggle('hidden', isAuthenticated)
+                document.getElementById('appShell').classList.toggle('active', isAuthenticated)
+
+                if (!isAuthenticated) {
+                    document.getElementById('userInfo').textContent = ''
+                    document.getElementById('syncStatus').textContent = ''
+                }
+            }
+
+            showAuthError(message) {
+                const authError = document.getElementById('authError')
+                authError.textContent = message
+                authError.classList.remove('hidden')
+            }
+
+            clearAuthError() {
+                const authError = document.getElementById('authError')
+                authError.textContent = ''
+                authError.classList.add('hidden')
+            }
+
+            updateSyncStatus(message = '') {
+                document.getElementById('syncStatus').textContent = message
+            }
+
+            async handleAuthStateChanged(user) {
+                this.clearAuthError()
+
+                if (this.unsubscribeFromUserData) {
+                    this.unsubscribeFromUserData()
+                    this.unsubscribeFromUserData = null
+                }
+
+                if (!user) {
+                    this.user = null
+                    this.assets = []
+                    this.liabilities = []
+                    this.income = []
+                    this.expenses = []
+                    this.editing = {
+                        asset: null,
+                        liability: null,
+                        income: null,
+                        expense: null
+                    }
+                    this.renderAllSections()
+                    this.resetFormMode('asset')
+                    this.resetFormMode('liability')
+                    this.resetFormMode('income')
+                    this.resetFormMode('expense')
+                    this.updateAuthUI(false)
+                    return
+                }
+
+                this.user = user
+                document.getElementById('userInfo').textContent = user.displayName || user.email || ''
+                this.updateAuthUI(true)
+                this.updateSyncStatus('Synkroniserar...')
+                this.subscribeToUserData()
+            }
+
+            subscribeToUserData() {
+                const userDataRef = this.getUserDataRef()
+                if (!userDataRef) return
+
+                this.unsubscribeFromUserData = userDataRef.onSnapshot(async (doc) => {
+                    if (!doc.exists) {
+                        await userDataRef.set(this.getDataPayload())
+                        return
+                    }
+
+                    const data = doc.data() || {}
+                    this.assets = Array.isArray(data.assets) ? data.assets : []
+                    this.liabilities = Array.isArray(data.liabilities) ? data.liabilities : []
+                    this.income = Array.isArray(data.income) ? data.income : []
+                    this.expenses = Array.isArray(data.expenses) ? data.expenses : []
+                    this.renderAllSections()
+                    this.updateSyncStatus('Synkad')
+                }, (error) => {
+                    console.error('Firestore sync failed', error)
+                    this.updateSyncStatus('Synkfel')
+                    alert('Det gick inte att synka din data med Firestore.')
+                })
+            }
+
+            async saveData() {
+                const userDataRef = this.getUserDataRef()
+                if (!userDataRef) return
+
+                this.updateSyncStatus('Sparar...')
+
+                try {
+                    await userDataRef.set(this.getDataPayload(), { merge: true })
+                    this.updateSyncStatus('Synkad')
+                } catch (error) {
+                    console.error('Saving to Firestore failed', error)
+                    this.updateSyncStatus('Synkfel')
+                    alert('Det gick inte att spara till Firestore. Försök igen.')
+                }
             }
 
             switchSection(sectionId, clickedButton) {
@@ -957,7 +1196,7 @@
                     this.assets.push(asset)
                 }
 
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 this.resetFormMode('asset')
             }
@@ -977,7 +1216,7 @@
                     this.liabilities.push(liability)
                 }
 
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 this.resetFormMode('liability')
             }
@@ -996,7 +1235,7 @@
                     this.income.push(incomeItem)
                 }
 
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 this.resetFormMode('income')
             }
@@ -1015,14 +1254,14 @@
                     this.expenses.push(expenseItem)
                 }
 
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 this.resetFormMode('expense')
             }
 
             deleteAsset(id) {
                 this.assets = this.assets.filter(a => a.id !== id)
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 if (this.editing.asset === id) {
                     this.resetFormMode('asset')
@@ -1031,7 +1270,7 @@
 
             deleteLiability(id) {
                 this.liabilities = this.liabilities.filter(l => l.id !== id)
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 if (this.editing.liability === id) {
                     this.resetFormMode('liability')
@@ -1040,7 +1279,7 @@
 
             deleteIncome(id) {
                 this.income = this.income.filter(i => i.id !== id)
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 if (this.editing.income === id) {
                     this.resetFormMode('income')
@@ -1049,7 +1288,7 @@
 
             deleteExpense(id) {
                 this.expenses = this.expenses.filter(e => e.id !== id)
-                this.saveToLocalStorage()
+                this.saveData()
                 this.renderAllSections()
                 if (this.editing.expense === id) {
                     this.resetFormMode('expense')
@@ -2034,29 +2273,13 @@
                 }
             }
 
-            saveToLocalStorage() {
-                localStorage.setItem('financeData', JSON.stringify({
-                    assets: this.assets,
-                    liabilities: this.liabilities,
-                    income: this.income,
-                    expenses: this.expenses
-                }))
-            }
-
-            loadFromLocalStorage() {
-                const data = localStorage.getItem('financeData')
-                if (data) {
-                    const parsed = JSON.parse(data)
-                    this.assets = parsed.assets || []
-                    this.liabilities = parsed.liabilities || []
-                    this.income = parsed.income || []
-                    this.expenses = parsed.expenses || []
-                }
-            }
         }
 
         // Initialize app
         const app = new FinanceApp()
+        auth.onAuthStateChanged((user) => {
+            app.handleAuthStateChanged(user)
+        })
     </script>
 </body>
 </html>

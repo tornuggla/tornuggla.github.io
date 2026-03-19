@@ -965,6 +965,9 @@
         const auth = firebase.auth()
         const db = firebase.firestore()
         const googleProvider = new firebase.auth.GoogleAuthProvider()
+        googleProvider.setCustomParameters({
+            prompt: 'select_account'
+        })
 
         // App State Management
         class FinanceApp {
@@ -988,6 +991,7 @@
                 this.setupEventListeners()
                 this.renderAllSections()
                 this.updateAuthUI(false)
+                this.handleRedirectResult()
             }
 
             setupEventListeners() {
@@ -1018,6 +1022,17 @@
                         await auth.signInWithPopup(googleProvider)
                     } catch (error) {
                         console.error('Google sign-in failed', error)
+                        if (this.shouldUseRedirectFallback(error)) {
+                            try {
+                                await auth.signInWithRedirect(googleProvider)
+                                return
+                            } catch (redirectError) {
+                                console.error('Google redirect sign-in failed', redirectError)
+                                this.showAuthError(this.formatAuthError(redirectError))
+                                return
+                            }
+                        }
+
                         this.showAuthError(this.formatAuthError(error))
                     }
                 })
@@ -1086,12 +1101,32 @@
                 authError.classList.remove('hidden')
             }
 
+            shouldUseRedirectFallback(error) {
+                const popupFallbackErrors = [
+                    'auth/popup-blocked',
+                    'auth/popup-closed-by-user',
+                    'auth/cancelled-popup-request',
+                    'auth/operation-not-supported-in-this-environment'
+                ]
+
+                return !!(error && popupFallbackErrors.includes(error.code))
+            }
+
             formatAuthError(error) {
                 const code = error && error.code ? error.code : 'unknown'
                 const details = error && error.message ? error.message : 'Ingen ytterligare information från Firebase.'
                 const host = window.location.hostname || 'unknown-host'
 
                 return `Firebase-inloggning misslyckades (${code}) pa ${host}. ${details}`
+            }
+
+            async handleRedirectResult() {
+                try {
+                    await auth.getRedirectResult()
+                } catch (error) {
+                    console.error('Redirect result handling failed', error)
+                    this.showAuthError(this.formatAuthError(error))
+                }
             }
 
             clearAuthError() {

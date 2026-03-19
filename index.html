@@ -1696,7 +1696,7 @@
                 const assetRows = assetCategories.map(category => `
                     <tr>
                         <td>${category.label}</td>
-                        <td>${this.formatCurrency(getCategoryTotal(this.assets, category.key))}</td>
+                        <td class="statement-value-positive">${this.formatCurrency(getCategoryTotal(this.assets, category.key))}</td>
                     </tr>
                 `).join('')
 
@@ -1722,7 +1722,7 @@
                             ${assetRows}
                             <tr class="statement-total-row">
                                 <td>Tillgångar</td>
-                                <td>${this.formatCurrency(totalAssets)}</td>
+                                <td class="statement-value-positive">${this.formatCurrency(totalAssets)}</td>
                             </tr>
                             <tr class="statement-divider-row">
                                 <td colspan="2">Skulder</td>
@@ -1823,7 +1823,7 @@
                                         ${items.map(asset => `
                                             <tr>
                                                 <td>${asset.name}</td>
-                                                <td class="amount">${this.formatCurrency(asset.value)}</td>
+                                                <td class="amount positive">${this.formatCurrency(asset.value)}</td>
                                                 <td>
                                                     <div class="table-actions">
                                                         <button class="btn-edit" onclick="app.editAsset(${asset.id})">Redigera</button>
@@ -1834,7 +1834,7 @@
                                         `).join('')}
                                         <tr style="background-color: var(--lighter);">
                                             <td style="font-weight: 600;">Summa</td>
-                                            <td style="font-weight: 600;">${this.formatCurrency(categoryTotal)}</td>
+                                            <td style="font-weight: 600; color: var(--accent);">${this.formatCurrency(categoryTotal)}</td>
                                             <td></td>
                                         </tr>
                                     </tbody>
@@ -1848,7 +1848,7 @@
                         <div class="summary-box">
                             <div class="summary-row">
                                 <span style="font-size: 1.1rem;">Tillgångar</span>
-                                <span class="summary-value" style="font-size: 1.1rem; color: var(--accent);">${this.formatCurrency(total)}</span>
+                                <span class="summary-value amount positive" style="font-size: 1.1rem; color: var(--accent);">${this.formatCurrency(total)}</span>
                             </div>
                         </div>
                     `

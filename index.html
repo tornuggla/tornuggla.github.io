@@ -1018,7 +1018,7 @@
                         await auth.signInWithPopup(googleProvider)
                     } catch (error) {
                         console.error('Google sign-in failed', error)
-                        this.showAuthError('Det gick inte att logga in med Google. Försök igen.')
+                        this.showAuthError(this.formatAuthError(error))
                     }
                 })
 
@@ -1084,6 +1084,14 @@
                 const authError = document.getElementById('authError')
                 authError.textContent = message
                 authError.classList.remove('hidden')
+            }
+
+            formatAuthError(error) {
+                const code = error && error.code ? error.code : 'unknown'
+                const details = error && error.message ? error.message : 'Ingen ytterligare information från Firebase.'
+                const host = window.location.hostname || 'unknown-host'
+
+                return `Firebase-inloggning misslyckades (${code}) pa ${host}. ${details}`
             }
 
             clearAuthError() {

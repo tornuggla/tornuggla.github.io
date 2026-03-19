@@ -365,6 +365,17 @@
             background-color: #c0392b;
         }
 
+        .btn-edit {
+            background-color: var(--light);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--border);
+        }
+
         /* Grid Layouts */
         .form-row {
             display: grid;
@@ -408,6 +419,13 @@
 
         .data-list-table col.action-col {
             width: 18%;
+        }
+
+        .table-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
         th {
@@ -703,7 +721,7 @@
                         <label for="assetValue">Värde</label>
                         <input type="number" id="assetValue" placeholder="0" step="0.01" required>
                     </div>
-                    <button type="submit" class="btn-primary">Lägg till</button>
+                    <button type="submit" class="btn-primary" id="assetSubmitBtn">Lägg till</button>
                 </form>
             </div>
 
@@ -740,7 +758,7 @@
                         <label for="liabilityValue">Belopp</label>
                         <input type="number" id="liabilityValue" placeholder="0" step="0.01" required>
                     </div>
-                    <button type="submit" class="btn-primary">Lägg till</button>
+                    <button type="submit" class="btn-primary" id="liabilitySubmitBtn">Lägg till</button>
                 </form>
             </div>
 
@@ -767,7 +785,7 @@
                             <input type="number" id="incomeAmount" placeholder="0" step="0.01" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary">Lägg till</button>
+                    <button type="submit" class="btn-primary" id="incomeSubmitBtn">Lägg till</button>
                 </form>
             </div>
 
@@ -794,7 +812,7 @@
                             <input type="number" id="expenseAmount" placeholder="0" step="0.01" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-primary">Lägg till</button>
+                    <button type="submit" class="btn-primary" id="expenseSubmitBtn">Lägg till</button>
                 </form>
             </div>
 
@@ -816,6 +834,12 @@
                 this.liabilities = []
                 this.income = []
                 this.expenses = []
+                this.editing = {
+                    asset: null,
+                    liability: null,
+                    income: null,
+                    expense: null
+                }
                 this.loadFromLocalStorage()
                 this.init()
             }
@@ -879,85 +903,188 @@
             }
 
             addAsset() {
+                const assetId = this.editing.asset
                 const asset = {
-                    id: Date.now(),
+                    id: assetId || Date.now(),
                     name: document.getElementById('assetName').value,
                     category: document.getElementById('assetCategory').value,
                     value: parseFloat(document.getElementById('assetValue').value)
                 }
 
-                this.assets.push(asset)
+                if (assetId) {
+                    this.assets = this.assets.map(existing => existing.id === assetId ? asset : existing)
+                } else {
+                    this.assets.push(asset)
+                }
+
                 this.saveToLocalStorage()
                 this.renderAllSections()
-
-                document.getElementById('assetForm').reset()
+                this.resetFormMode('asset')
             }
 
             addLiability() {
+                const liabilityId = this.editing.liability
                 const liability = {
-                    id: Date.now(),
+                    id: liabilityId || Date.now(),
                     name: document.getElementById('liabilityName').value,
                     category: document.getElementById('liabilityCategory').value,
                     value: parseFloat(document.getElementById('liabilityValue').value)
                 }
 
-                this.liabilities.push(liability)
+                if (liabilityId) {
+                    this.liabilities = this.liabilities.map(existing => existing.id === liabilityId ? liability : existing)
+                } else {
+                    this.liabilities.push(liability)
+                }
+
                 this.saveToLocalStorage()
                 this.renderAllSections()
-
-                document.getElementById('liabilityForm').reset()
+                this.resetFormMode('liability')
             }
 
             addIncome() {
+                const incomeId = this.editing.income
                 const incomeItem = {
-                    id: Date.now(),
+                    id: incomeId || Date.now(),
                     name: document.getElementById('incomeName').value,
                     amount: parseFloat(document.getElementById('incomeAmount').value)
                 }
 
-                this.income.push(incomeItem)
+                if (incomeId) {
+                    this.income = this.income.map(existing => existing.id === incomeId ? incomeItem : existing)
+                } else {
+                    this.income.push(incomeItem)
+                }
+
                 this.saveToLocalStorage()
                 this.renderAllSections()
-
-                document.getElementById('incomeForm').reset()
+                this.resetFormMode('income')
             }
 
             addExpense() {
+                const expenseId = this.editing.expense
                 const expenseItem = {
-                    id: Date.now(),
+                    id: expenseId || Date.now(),
                     name: document.getElementById('expenseName').value,
                     amount: parseFloat(document.getElementById('expenseAmount').value)
                 }
 
-                this.expenses.push(expenseItem)
+                if (expenseId) {
+                    this.expenses = this.expenses.map(existing => existing.id === expenseId ? expenseItem : existing)
+                } else {
+                    this.expenses.push(expenseItem)
+                }
+
                 this.saveToLocalStorage()
                 this.renderAllSections()
-
-                document.getElementById('expenseForm').reset()
+                this.resetFormMode('expense')
             }
 
             deleteAsset(id) {
                 this.assets = this.assets.filter(a => a.id !== id)
                 this.saveToLocalStorage()
                 this.renderAllSections()
+                if (this.editing.asset === id) {
+                    this.resetFormMode('asset')
+                }
             }
 
             deleteLiability(id) {
                 this.liabilities = this.liabilities.filter(l => l.id !== id)
                 this.saveToLocalStorage()
                 this.renderAllSections()
+                if (this.editing.liability === id) {
+                    this.resetFormMode('liability')
+                }
             }
 
             deleteIncome(id) {
                 this.income = this.income.filter(i => i.id !== id)
                 this.saveToLocalStorage()
                 this.renderAllSections()
+                if (this.editing.income === id) {
+                    this.resetFormMode('income')
+                }
             }
 
             deleteExpense(id) {
                 this.expenses = this.expenses.filter(e => e.id !== id)
                 this.saveToLocalStorage()
                 this.renderAllSections()
+                if (this.editing.expense === id) {
+                    this.resetFormMode('expense')
+                }
+            }
+
+            editAsset(id) {
+                const asset = this.assets.find(item => item.id === id)
+                if (!asset) return
+
+                this.editing.asset = id
+                document.getElementById('assetName').value = asset.name
+                document.getElementById('assetCategory').value = asset.category
+                document.getElementById('assetValue').value = asset.value
+                document.getElementById('assetSubmitBtn').textContent = 'Spara ändringar'
+            }
+
+            editLiability(id) {
+                const liability = this.liabilities.find(item => item.id === id)
+                if (!liability) return
+
+                this.editing.liability = id
+                document.getElementById('liabilityName').value = liability.name
+                document.getElementById('liabilityCategory').value = liability.category
+                document.getElementById('liabilityValue').value = liability.value
+                document.getElementById('liabilitySubmitBtn').textContent = 'Spara ändringar'
+            }
+
+            editIncome(id) {
+                const income = this.income.find(item => item.id === id)
+                if (!income) return
+
+                this.editing.income = id
+                document.getElementById('incomeName').value = income.name
+                document.getElementById('incomeAmount').value = income.amount
+                document.getElementById('incomeSubmitBtn').textContent = 'Spara ändringar'
+            }
+
+            editExpense(id) {
+                const expense = this.expenses.find(item => item.id === id)
+                if (!expense) return
+
+                this.editing.expense = id
+                document.getElementById('expenseName').value = expense.name
+                document.getElementById('expenseAmount').value = expense.amount
+                document.getElementById('expenseSubmitBtn').textContent = 'Spara ändringar'
+            }
+
+            resetFormMode(type) {
+                const config = {
+                    asset: {
+                        formId: 'assetForm',
+                        buttonId: 'assetSubmitBtn',
+                        defaultLabel: 'Lägg till'
+                    },
+                    liability: {
+                        formId: 'liabilityForm',
+                        buttonId: 'liabilitySubmitBtn',
+                        defaultLabel: 'Lägg till'
+                    },
+                    income: {
+                        formId: 'incomeForm',
+                        buttonId: 'incomeSubmitBtn',
+                        defaultLabel: 'Lägg till'
+                    },
+                    expense: {
+                        formId: 'expenseForm',
+                        buttonId: 'expenseSubmitBtn',
+                        defaultLabel: 'Lägg till'
+                    }
+                }
+
+                this.editing[type] = null
+                document.getElementById(config[type].formId).reset()
+                document.getElementById(config[type].buttonId).textContent = config[type].defaultLabel
             }
 
             calculateTotalAssets() {
@@ -1675,7 +1802,12 @@
                                             <tr>
                                                 <td>${asset.name}</td>
                                                 <td class="amount">${this.formatCurrency(asset.value)}</td>
-                                                <td><button class="btn-danger" onclick="app.deleteAsset(${asset.id})">Ta bort</button></td>
+                                                <td>
+                                                    <div class="table-actions">
+                                                        <button class="btn-edit" onclick="app.editAsset(${asset.id})">Redigera</button>
+                                                        <button class="btn-danger" onclick="app.deleteAsset(${asset.id})">Ta bort</button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         `).join('')}
                                         <tr style="background-color: var(--lighter);">
@@ -1739,7 +1871,12 @@
                                             <tr>
                                                 <td>${liability.name}</td>
                                                 <td class="amount negative">${this.formatCurrency(liability.value)}</td>
-                                                <td><button class="btn-danger" onclick="app.deleteLiability(${liability.id})">Ta bort</button></td>
+                                                <td>
+                                                    <div class="table-actions">
+                                                        <button class="btn-edit" onclick="app.editLiability(${liability.id})">Redigera</button>
+                                                        <button class="btn-danger" onclick="app.deleteLiability(${liability.id})">Ta bort</button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         `).join('')}
                                         <tr style="background-color: var(--lighter);">
@@ -1791,7 +1928,12 @@
                                     <tr>
                                         <td>${item.name}</td>
                                         <td class="amount positive">${this.formatCurrency(item.amount)}</td>
-                                        <td><button class="btn-danger" onclick="app.deleteIncome(${item.id})">Ta bort</button></td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <button class="btn-edit" onclick="app.editIncome(${item.id})">Redigera</button>
+                                                <button class="btn-danger" onclick="app.deleteIncome(${item.id})">Ta bort</button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 `).join('')}
                                 <tr style="background-color: var(--lighter);">
@@ -1829,7 +1971,12 @@
                                     <tr>
                                         <td>${item.name}</td>
                                         <td class="amount negative">${this.formatCurrency(item.amount)}</td>
-                                        <td><button class="btn-danger" onclick="app.deleteExpense(${item.id})">Ta bort</button></td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <button class="btn-edit" onclick="app.editExpense(${item.id})">Redigera</button>
+                                                <button class="btn-danger" onclick="app.deleteExpense(${item.id})">Ta bort</button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 `).join('')}
                                 <tr style="background-color: var(--lighter);">

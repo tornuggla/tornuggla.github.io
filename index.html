@@ -29,7 +29,6 @@
             background-color: var(--lighter);
             color: var(--text);
             line-height: 1.6;
-            padding-bottom: 4rem;
         }
 
         .container {
@@ -105,6 +104,14 @@
         /* Main Content */
         main {
             margin-bottom: 2rem;
+        }
+
+        footer {
+            background-color: #e9ecef;
+            color: var(--text-light);
+            text-align: center;
+            font-size: 0.85rem;
+            padding: 2rem 1rem 3rem;
         }
 
         .section {
@@ -848,8 +855,14 @@
         </section>
     </main>
 
+    <footer>
+        <p>Privatekonomi <span id="footerYear"></span></p>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script>
+        document.getElementById('footerYear').textContent = new Date().getFullYear()
+
         // App State Management
         class FinanceApp {
             constructor() {

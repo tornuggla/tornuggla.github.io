@@ -115,6 +115,12 @@
             display: block;
         }
 
+        .page-shell {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -655,171 +661,181 @@
     <main class="container">
         <!-- Dashboard Section -->
         <section id="dashboard" class="section active">
-            <div class="dashboard-summary">
-                <div class="card">
-                    <h2>Tillgångar</h2>
-                    <div class="card-stat" id="totalAssets">0 kr</div>
-                </div>
-                <div class="card">
-                    <h2>Skulder</h2>
-                    <div class="card-stat amount negative" id="totalLiabilities">0 kr</div>
-                </div>
-                <div class="card">
-                    <h2>Nettovärde</h2>
-                    <div class="card-stat" id="netWorth">0 kr</div>
-                </div>
-            </div>
-            <div class="report-layout">
-                <section class="financial-statement">
-                    <h2 class="statement-title">Balansräkning</h2>
-                    <div id="balanceSheet"></div>
-                </section>
+            <div class="page-shell">
                 <div class="dashboard-summary">
                     <div class="card">
-                        <h2>Inkomster</h2>
-                        <div class="card-stat amount positive" id="totalIncome">0 kr</div>
+                        <h2>Tillgångar</h2>
+                        <div class="card-stat" id="totalAssets">0 kr</div>
                     </div>
                     <div class="card">
-                        <h2>Utgifter</h2>
-                        <div class="card-stat amount negative" id="totalExpenses">0 kr</div>
+                        <h2>Skulder</h2>
+                        <div class="card-stat amount negative" id="totalLiabilities">0 kr</div>
                     </div>
                     <div class="card">
-                        <h2>Netto</h2>
-                        <div class="card-stat" id="totalNet">0 kr</div>
+                        <h2>Nettovärde</h2>
+                        <div class="card-stat" id="netWorth">0 kr</div>
                     </div>
                 </div>
-                <section class="financial-statement">
-                    <h2 class="statement-title">Resultaträkning</h2>
-                    <div id="incomeStatement"></div>
-                </section>
+                <div class="report-layout">
+                    <section class="financial-statement">
+                        <h2 class="statement-title">Balansräkning</h2>
+                        <div id="balanceSheet"></div>
+                    </section>
+                    <div class="dashboard-summary">
+                        <div class="card">
+                            <h2>Inkomster</h2>
+                            <div class="card-stat amount positive" id="totalIncome">0 kr</div>
+                        </div>
+                        <div class="card">
+                            <h2>Utgifter</h2>
+                            <div class="card-stat amount negative" id="totalExpenses">0 kr</div>
+                        </div>
+                        <div class="card">
+                            <h2>Netto</h2>
+                            <div class="card-stat" id="totalNet">0 kr</div>
+                        </div>
+                    </div>
+                    <section class="financial-statement">
+                        <h2 class="statement-title">Resultaträkning</h2>
+                        <div id="incomeStatement"></div>
+                    </section>
+                </div>
             </div>
         </section>
 
         <!-- Assets Section -->
         <section id="assets" class="section">
-            <div class="card">
-                <h2>Hantera tillgångar</h2>
-                <form id="assetForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="assetName">Namn</label>
-                            <input type="text" id="assetName" placeholder="t.ex. Lönekonto" required>
+            <div class="page-shell">
+                <div class="card">
+                    <h2>Hantera tillgångar</h2>
+                    <form id="assetForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="assetName">Namn</label>
+                                <input type="text" id="assetName" placeholder="t.ex. Lönekonto" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="assetCategory">Kategori</label>
+                                <select id="assetCategory" required>
+                                    <option value="">Välj kategori</option>
+                                    <option value="cash">Kontanter</option>
+                                    <option value="savings">Sparande</option>
+                                    <option value="investments">Investeringar</option>
+                                    <option value="property">Fastighet</option>
+                                    <option value="other">Övrigt</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label for="assetCategory">Kategori</label>
-                            <select id="assetCategory" required>
-                                <option value="">Välj kategori</option>
-                                <option value="cash">Kontanter</option>
-                                <option value="savings">Sparande</option>
-                                <option value="investments">Investeringar</option>
-                                <option value="property">Fastighet</option>
-                                <option value="other">Övrigt</option>
-                            </select>
+                            <label for="assetValue">Värde</label>
+                            <input type="number" id="assetValue" placeholder="0" step="0.01" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="assetValue">Värde</label>
-                        <input type="number" id="assetValue" placeholder="0" step="0.01" required>
-                    </div>
-                    <button type="submit" class="btn-primary" id="assetSubmitBtn">Lägg till</button>
-                </form>
-            </div>
+                        <button type="submit" class="btn-primary" id="assetSubmitBtn">Lägg till</button>
+                    </form>
+                </div>
 
-            <div class="card" style="margin-top: 2rem;">
-                <h2>Dina tillgångar</h2>
-                <div id="assetsList">
-                    <p class="empty-state">Inga tillgångar ännu. Lägg till en ovan.</p>
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Dina tillgångar</h2>
+                    <div id="assetsList">
+                        <p class="empty-state">Inga tillgångar ännu. Lägg till en ovan.</p>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Liabilities Section -->
         <section id="liabilities" class="section">
-            <div class="card">
-                <h2>Hantera skulder</h2>
-                <form id="liabilityForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="liabilityName">Namn</label>
-                            <input type="text" id="liabilityName" placeholder="t.ex. Bolån hos banken" required>
+            <div class="page-shell">
+                <div class="card">
+                    <h2>Hantera skulder</h2>
+                    <form id="liabilityForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="liabilityName">Namn</label>
+                                <input type="text" id="liabilityName" placeholder="t.ex. Bolån hos banken" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="liabilityCategory">Kategori</label>
+                                <select id="liabilityCategory" required>
+                                    <option value="">Välj kategori</option>
+                                    <option value="mortgage">Bolån</option>
+                                    <option value="car-loan">Billån</option>
+                                    <option value="other-loans">Övriga lån</option>
+                                    <option value="credit-card">Kreditkort</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label for="liabilityCategory">Kategori</label>
-                            <select id="liabilityCategory" required>
-                                <option value="">Välj kategori</option>
-                                <option value="mortgage">Bolån</option>
-                                <option value="car-loan">Billån</option>
-                                <option value="other-loans">Övriga lån</option>
-                                <option value="credit-card">Kreditkort</option>
-                            </select>
+                            <label for="liabilityValue">Belopp</label>
+                            <input type="number" id="liabilityValue" placeholder="0" step="0.01" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="liabilityValue">Belopp</label>
-                        <input type="number" id="liabilityValue" placeholder="0" step="0.01" required>
-                    </div>
-                    <button type="submit" class="btn-primary" id="liabilitySubmitBtn">Lägg till</button>
-                </form>
-            </div>
+                        <button type="submit" class="btn-primary" id="liabilitySubmitBtn">Lägg till</button>
+                    </form>
+                </div>
 
-            <div class="card" style="margin-top: 2rem;">
-                <h2>Dina skulder</h2>
-                <div id="liabilitiesList">
-                    <p class="empty-state">Inga skulder ännu. Lägg till en ovan.</p>
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Dina skulder</h2>
+                    <div id="liabilitiesList">
+                        <p class="empty-state">Inga skulder ännu. Lägg till en ovan.</p>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Income Section -->
         <section id="income" class="section">
-            <div class="card">
-                <h2>Lägg till månadsinkomst</h2>
-                <form id="incomeForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="incomeName">Namn</label>
-                            <input type="text" id="incomeName" placeholder="t.ex. Lön" required>
+            <div class="page-shell">
+                <div class="card">
+                    <h2>Lägg till månadsinkomst</h2>
+                    <form id="incomeForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="incomeName">Namn</label>
+                                <input type="text" id="incomeName" placeholder="t.ex. Lön" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="incomeAmount">Månadsinkomst</label>
+                                <input type="number" id="incomeAmount" placeholder="0" step="0.01" required>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="incomeAmount">Månadsinkomst</label>
-                            <input type="number" id="incomeAmount" placeholder="0" step="0.01" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-primary" id="incomeSubmitBtn">Lägg till</button>
-                </form>
-            </div>
+                        <button type="submit" class="btn-primary" id="incomeSubmitBtn">Lägg till</button>
+                    </form>
+                </div>
 
-            <div class="card" style="margin-top: 2rem;">
-                <h2>Månadsinkomst</h2>
-                <div id="incomeList">
-                    <p class="empty-state">Ingen månadsinkomst ännu. Lägg till en ovan.</p>
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Månadsinkomst</h2>
+                    <div id="incomeList">
+                        <p class="empty-state">Ingen månadsinkomst ännu. Lägg till en ovan.</p>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Expenses Section -->
         <section id="expenses" class="section">
-            <div class="card">
-                <h2>Lägg till månatliga utgifter</h2>
-                <form id="expenseForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="expenseName">Namn</label>
-                            <input type="text" id="expenseName" placeholder="t.ex. Hyra" required>
+            <div class="page-shell">
+                <div class="card">
+                    <h2>Lägg till månatliga utgifter</h2>
+                    <form id="expenseForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="expenseName">Namn</label>
+                                <input type="text" id="expenseName" placeholder="t.ex. Hyra" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expenseAmount">Månatliga utgifter</label>
+                                <input type="number" id="expenseAmount" placeholder="0" step="0.01" required>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="expenseAmount">Månatliga utgifter</label>
-                            <input type="number" id="expenseAmount" placeholder="0" step="0.01" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-primary" id="expenseSubmitBtn">Lägg till</button>
-                </form>
-            </div>
+                        <button type="submit" class="btn-primary" id="expenseSubmitBtn">Lägg till</button>
+                    </form>
+                </div>
 
-            <div class="card" style="margin-top: 2rem;">
-                <h2>Månatliga utgifter</h2>
-                <div id="expenseList">
-                    <p class="empty-state">Inga månatliga utgifter ännu. Lägg till en ovan.</p>
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Månatliga utgifter</h2>
+                    <div id="expenseList">
+                        <p class="empty-state">Inga månatliga utgifter ännu. Lägg till en ovan.</p>
+                    </div>
                 </div>
             </div>
         </section>

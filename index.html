@@ -388,6 +388,28 @@
             overflow: hidden;
         }
 
+        .data-group {
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+
+        .data-list-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .data-list-table col.name-col {
+            width: 58%;
+        }
+
+        .data-list-table col.value-col {
+            width: 24%;
+        }
+
+        .data-list-table col.action-col {
+            width: 18%;
+        }
+
         th {
             background-color: var(--light);
             padding: 1rem;
@@ -1633,14 +1655,19 @@
                     Object.entries(categoryGroups).forEach(([category, items]) => {
                         const categoryTotal = items.reduce((sum, item) => sum + item.value, 0)
                         html += `
-                            <div style="margin-bottom: 2rem;">
+                            <div class="data-group">
                                 <h3 style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 1rem; letter-spacing: 0.5px;">${this.getAssetCategoryLabel(category)}</h3>
-                                <table>
+                                <table class="data-list-table">
+                                    <colgroup>
+                                        <col class="name-col">
+                                        <col class="value-col">
+                                        <col class="action-col">
+                                    </colgroup>
                                     <thead>
                                         <tr>
                                             <th>Namn</th>
                                             <th>Värde</th>
-                                            <th style="width: 80px;"></th>
+                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1692,14 +1719,19 @@
                     Object.entries(categoryGroups).forEach(([category, items]) => {
                         const categoryTotal = items.reduce((sum, item) => sum + item.value, 0)
                         html += `
-                            <div style="margin-bottom: 2rem;">
+                            <div class="data-group">
                                 <h3 style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 1rem; letter-spacing: 0.5px;">${this.getLiabilityCategoryLabel(category)}</h3>
-                                <table>
+                                <table class="data-list-table">
+                                    <colgroup>
+                                        <col class="name-col">
+                                        <col class="value-col">
+                                        <col class="action-col">
+                                    </colgroup>
                                     <thead>
                                         <tr>
                                             <th>Namn</th>
                                             <th>Belopp</th>
-                                            <th style="width: 80px;"></th>
+                                            <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1741,12 +1773,17 @@
                 } else {
                     const incomeTotal = this.calculateTotalIncome()
                     document.getElementById('incomeList').innerHTML = `
-                        <table>
+                        <table class="data-list-table">
+                            <colgroup>
+                                <col class="name-col">
+                                <col class="value-col">
+                                <col class="action-col">
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>Namn</th>
                                     <th>Månadsinkomst</th>
-                                    <th style="width: 80px;"></th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1774,12 +1811,17 @@
                 } else {
                     const expenseTotal = this.calculateTotalExpenses()
                     document.getElementById('expenseList').innerHTML = `
-                        <table>
+                        <table class="data-list-table">
+                            <colgroup>
+                                <col class="name-col">
+                                <col class="value-col">
+                                <col class="action-col">
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>Namn</th>
                                     <th>Månatliga utgifter</th>
-                                    <th style="width: 80px;"></th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody>
